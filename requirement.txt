@@ -1,0 +1,4 @@
+baostock
+pandas
+numpy
+chinese_calendar
