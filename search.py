@@ -46,7 +46,7 @@ def get_date(datecount):
     today = datetime.datetime.now().date()
     enddate = today+datetime.timedelta(days=-1)
     while not is_workday(enddate):
-        enddate =  today+datetime.timedelta(days=-1).strftime('%Y-%m-%d')
+        enddate =  enddate+datetime.timedelta(days=-1)
 
     startdate = enddate
     while datecount>0:
@@ -65,6 +65,7 @@ def get_var(pricelist):
 def mode_var(allcode):
     vardict = {}
     start_date,end_date = get_date(args.days)
+    print(start_date,end_date)
     for code in allcode:
         pricelist = get_price(start_date,end_date,code)
         if len(pricelist)!=0:
@@ -81,7 +82,8 @@ def mode_var(allcode):
                 print("code:",code,",var:",code_var)
             vardict[code] = get_var(pricelist)
     if args.sort:
-        print(vardict)
+        varsort = sorted(vardict.items(),key=lambda x:x[1],reverse=False)
+        print(varsort[0:20])
 
 def compute_kdj(L9,H9,Ct,K_pri,D_pri):
     if H9==L9:
