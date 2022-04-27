@@ -8,10 +8,10 @@ import argparse
 parser = argparse.ArgumentParser(description='searchstock')
 parser.add_argument('--mode',default='var',type=str,help="select mode:var,kdj,default=var")
 parser.add_argument('--threshold',default=0.04,type=float,help='code var threshold, default=0.04')
-parser.add_argument('--days',default=20,type=int,help='search continue smooth days, default=20')
+parser.add_argument('--days',default=30,type=int,help='search continue smooth days, default=30')
 parser.add_argument('--kdjdays',default=365,type=int,help='compute kdj days of work, default=220')
 parser.add_argument('--market',default="sz,sh",type=str,help='search market, default=sz,sh')
-parser.add_argument('--sort',default=False,type=str,help='is sort, default=False')
+parser.add_argument('--sort',default=True,type=str,help='is sort, default=True')
 args = parser.parse_args()
 
 def get_allcode():
@@ -49,7 +49,7 @@ def get_date(datecount):
         enddate =  enddate+datetime.timedelta(days=-1)
 
     startdate = enddate
-    while datecount>0:
+    while datecount>-1:
         startdate = startdate+datetime.timedelta(days=-1)
         if is_workday(startdate):
             datecount -= 1
@@ -58,9 +58,25 @@ def get_date(datecount):
 def get_var(pricelist):
     np_price = np.array(pricelist).astype(np.float)
     _range = np.max(np_price) - np.min(np_price)
+    if _range == 0.0:
+        return 0.0
     normalization = (np_price-np.min(np_price))/_range
     var = np.var(normalization)
     return var
+
+def get_trend(pricelist):
+    var_days = 5
+    np_price = np.array(pricelist).astype(np.float)
+    N = len(pricelist)
+    count = N//var_days
+    cp_price = np_price
+    if N%var_days!=0:
+        cp_price = np_price[:(var_days*count)]
+    cp_price = cp_price.reshape(count,var_days)
+    cp_price = np.mean(cp_price,axis=1)
+    is_sorted = lambda a: np.all(a[:-1] <= a[1:])
+    trueadd = is_sorted(cp_price)
+    return trueadd
 
 def mode_var(allcode):
     vardict = {}
@@ -68,7 +84,7 @@ def mode_var(allcode):
     print(start_date,end_date)
     for code in allcode:
         pricelist = get_price(start_date,end_date,code)
-        if len(pricelist)!=0:
+        if len(pricelist)>1:
             basic = bs.query_stock_basic(code=code)
             basicinfo =  basic.get_row_data()
             if len(basicinfo)==0:
@@ -76,10 +92,17 @@ def mode_var(allcode):
             codetype,status =basicinfo[4],basicinfo[5]
             if codetype == '2' or status=="0":
                 continue 
-            code_var = get_var(pricelist)
+            _,code_var = get_trend(pricelist),get_var(pricelist)
             market = code.split(".")[0]
-            if code_var < args.threshold and market in args.market:
-                print("code:",code,",var:",code_var)
+            if code_var < args.threshold and market in args.market and _:
+                if code_var < args.threshold-0.01 and code_var>0:
+                    print('\033[1;35;46m',"code:",code,",var:",code_var,'\033[0m')
+                elif code_var < args.threshold-0.005 and code_var>0:
+                    print('\033[0;33m',"code:",code,",var:",code_var,'\033[0m')
+                elif code_var > 0:
+                    print("code:",code,",var:",code_var)
+                else:
+                    continue
             vardict[code] = get_var(pricelist)
     if args.sort:
         varsort = sorted(vardict.items(),key=lambda x:x[1],reverse=False)
