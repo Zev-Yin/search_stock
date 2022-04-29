@@ -7,7 +7,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='searchstock')
 parser.add_argument('--mode',default='var',type=str,help="select mode:var,kdj,default=var")
-parser.add_argument('--threshold',default=0.04,type=float,help='code var threshold, default=0.04')
+parser.add_argument('--threshold',default=0.1,type=float,help='code var threshold, default=0.04')
 parser.add_argument('--days',default=30,type=int,help='search continue smooth days, default=30')
 parser.add_argument('--kdjdays',default=365,type=int,help='compute kdj days of work, default=220')
 parser.add_argument('--market',default="sz,sh",type=str,help='search market, default=sz,sh')
@@ -95,9 +95,9 @@ def mode_var(allcode):
             _,code_var = get_trend(pricelist),get_var(pricelist)
             market = code.split(".")[0]
             if code_var < args.threshold and market in args.market and _:
-                if code_var < args.threshold-0.01 and code_var>0:
+                if code_var < 0.5*args.threshold and code_var>0:
                     print('\033[1;35;46m',"code:",code,",var:",code_var,'\033[0m')
-                elif code_var < args.threshold-0.005 and code_var>0:
+                elif code_var < 0.8*args.threshold and code_var>0:
                     print('\033[0;33m',"code:",code,",var:",code_var,'\033[0m')
                 elif code_var > 0:
                     print("code:",code,",var:",code_var)
